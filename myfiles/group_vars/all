@@ -1,0 +1,56 @@
+---
+ansible_user                 : ubuntu
+ansible_ssh_private_key_file : ~/.ssh/id_rsa
+
+firewall_allowed_tcp_ports   :
+  - "22"
+  - "443"
+  - "80"
+  - "3306"
+  - "4443"
+  - "5443"
+  - "5601"
+  - "6443"
+  - "8443"
+  - "9000:10000"
+  - "8080:8081"
+  - "2379:2380"
+  - "30000:60000"
+  - "10248:10260"
+
+#firewall_state: stopped
+#firewall_enabled_at_boot: false
+#firewall_flush_rules_and_chains: true
+
+mounts:
+  - src: /dev/oracleoci/oraclevdb
+    path: /var/www/html
+  - src: /dev/oracleoci/oraclevdc
+    path: /var/lib/mysql
+
+kube_version: v1.23.7
+
+minimal_node_memory_mb: 900
+minimal_master_memory_mb: 900
+
+metrics_server_enabled: true
+ingress_nginx_enabled: true
+kube_network_plugin: flannel
+kubectl_localhost: true
+kubeconfig_localhost: true
+cert_manager_enabled: true
+cert_management: script
+
+artifacts_dir: ~/.kube/
+
+golang_gopath: /usr/local/go/bin/
+elastic_ns: elastic-system
+fluent_ns: fluent
+
+secrets:
+  - path: ./k/fboperator/secret.yaml
+    line: "  password: {{ espass64.stdout }}"
+  - path: kube_ev_exp.yaml
+    line: "          password: {{ espass.stdout }}"
+  - path: elastalert_values.yaml
+    line: "  password: {{ espass.stdout }}"

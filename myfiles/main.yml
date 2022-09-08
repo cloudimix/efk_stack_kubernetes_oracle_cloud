@@ -1,0 +1,4 @@
+---
+- import_playbook: play_firewall.yml
+#- import_playbook: volumes_mount.yml
+- import_playbook: cluster.yml

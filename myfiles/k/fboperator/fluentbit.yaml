@@ -1,0 +1,117 @@
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: FluentBit
+metadata:
+  name: fluent-bit
+  namespace: fluent
+  labels:
+    app.kubernetes.io/name: fluent-bit
+  annotations:
+    fluentbit.io/exclude: "true"
+spec:
+  image: kubesphere/fluent-bit:v1.9.4
+  positionDB:
+    hostPath:
+      path: /var/lib/fluent-bit/
+  resources:
+    requests:
+      cpu: 10m
+      memory: 25Mi
+    limits:
+      cpu: 500m
+      memory: 200Mi
+  fluentBitConfigName: fluent-bit-only-config
+  tolerations:
+    - operator: Exists
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFluentBitConfig
+metadata:
+  name: fluent-bit-only-config
+  labels:
+    app.kubernetes.io/name: fluent-bit
+spec:
+  service:
+    daemon: false
+    flushSeconds: 1
+    parsersFile: parsers.conf
+    httpServer:     true
+    httpListen:     0.0.0.0
+    httpPort:       2020
+    logLevel:       error
+  inputSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+      fluentbit.fluent.io/mode: "fluentbit-only"
+  filterSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+      fluentbit.fluent.io/mode: "fluentbit-only"
+  outputSelector:
+    matchLabels:
+      fluentbit.fluent.io/enabled: "true"
+      fluentbit.fluent.io/mode: "fluentbit-only"
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterInput
+metadata:
+  name: tail
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+    fluentbit.fluent.io/mode: "fluentbit-only"
+spec:
+  tail:
+    tag: kube.*
+    path: /var/log/containers/*.log
+    db: /fluent-bit/tail/tail.db
+    parser: docker
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: kubernetes
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+    fluentbit.fluent.io/mode: "fluentbit-only"
+spec:
+  match: kube.*
+  filters:
+  - kubernetes:
+      kubeURL:        https://kubernetes.default.svc:443
+      kubeCAFile:     /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      kubeTokenFile:  /var/run/secrets/kubernetes.io/serviceaccount/token
+      kubeTagPrefix:  kube.var.log.containers.
+      mergeLog:       true
+      mergeLogKey:    log_processed
+      k8sLoggingExclude: true
+---
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: es
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+    fluentbit.fluent.io/mode: "fluentbit-only"
+spec:
+  match: kube.*
+  es:
+    host: esoperator-es-http.elastic-system
+    port: 9200
+    httpUser:
+      valueFrom:
+        secretKeyRef:
+          key: username
+          name: escreds
+    httpPassword:
+      valueFrom:
+        secretKeyRef:
+          key: password
+          name: escreds
+    generateID: true
+    logstashPrefix: fluent-log
+    logstashFormat: true
+    timeKey: "@timestamp"
+    bufferSize: 20MB
+    index: my-index
+    suppressTypeName: "On"
+    tls:
+      verify: false

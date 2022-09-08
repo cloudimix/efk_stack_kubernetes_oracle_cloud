@@ -1,0 +1,6 @@
+---
+- name: Go install
+  hosts: localhost
+  become: no
+  roles:
+    - gantsign.golang
