@@ -1,0 +1,24 @@
+---
+- name: Fluent Bit operator deployment
+  hosts: localhost
+  become: no
+  gather_facts: no
+  tasks:
+    - name: Create operator namespace
+      k8s:
+        name: "{{ fluent_ns }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Create CRD
+      k8s:
+        namespace: "{{ fluent_ns }}"
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='k/fbcrd/') }}"
+        state: present
+
+    - name: Create kubernetes resources
+      k8s:
+        namespace: "{{ fluent_ns }}"
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='k/fboperator/') }}"
+        state: present

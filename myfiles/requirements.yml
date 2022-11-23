@@ -1,0 +1,9 @@
+roles:
+  - name: geerlingguy.firewall
+  - name: gantsign.golang
+
+collections:
+  - name: ansible.posix
+  - name: community.crypto
+  - name: community.general
+  - name: kubernetes.core

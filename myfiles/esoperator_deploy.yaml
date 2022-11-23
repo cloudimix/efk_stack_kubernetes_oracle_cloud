@@ -1,0 +1,34 @@
+---
+- name: ElasticSearch operator deployment
+  hosts: localhost
+  become: no
+  gather_facts: no
+  tasks:
+    - name: Requirements - pip
+      apt:
+        name: python3-pip
+        state: present
+
+    - name: Requirements - python kubernetes module
+      pip:
+        name: kubernetes
+        state: present
+
+    - name: Create operator namespace
+      k8s:
+        name: "{{ elastic_ns }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Create kubernetes resources
+      k8s:
+        namespace: "{{ elastic_ns }}"
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='k/escrd/') }}"
+        state: present
+
+    - name: Create kubernetes resources
+      k8s:
+        namespace: "{{ elastic_ns }}"
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='k/esoperator/') }}"
+        state: present
